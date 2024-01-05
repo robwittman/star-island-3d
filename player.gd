@@ -5,6 +5,8 @@ extends CharacterBody3D
 @export var jump_impulse = 20
 @export var bounce_impulse = 16
 
+signal hit
+
 var target_velocity = Vector3.ZERO
 
 func _physics_process(delta):
@@ -28,8 +30,11 @@ func _physics_process(delta):
 		direction.z -= 1
 
 	if direction != Vector3.ZERO:
+		$AnimationPlayer.speed_scale = 4
 		direction = direction.normalized()
 		$Pivot.look_at(position + direction, Vector3.UP)
+	else:
+		$AnimationPlayer.speed_scale = 1
 		
 	target_velocity.x = direction.x * speed
 	target_velocity.z = direction.z * speed
@@ -58,9 +63,19 @@ func _physics_process(delta):
 		if collision.get_collider().is_in_group("mob"):
 			var mob = collision.get_collider()
 			# we check that we are hitting it from above.
+			print(Vector3.UP.dot(collision.get_normal()))
 			if Vector3.UP.dot(collision.get_normal()) > 0.1:
 				# If so, we squash it and bounce.
 				mob.squash()
 				target_velocity.y = bounce_impulse
 				# Prevent further duplicate calls.
 				break
+				
+	$Pivot.rotation.x = PI / 6 * velocity.y / jump_impulse
+
+func die():
+	hit.emit()
+	queue_free()
+	
+func _on_mob_detector_body_entered(body):
+	die()
